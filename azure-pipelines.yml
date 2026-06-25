@@ -12,6 +12,9 @@ stages:
           - script: echo "Build step running..."
             displayName: 'Build'
 
+          - script: python3 --version
+            displayName: 'Verify Python'
+
           - script: echo "Build complete!"
             displayName: 'Build done'
 
@@ -23,6 +26,9 @@ stages:
           - script: echo "Running tests..."
             displayName: 'Test'
 
+          - script: python3 health_check.py
+            displayName: 'Run Health Check'
+
           - script: echo "All tests passed!"
             displayName: 'Test done'
 
@@ -33,6 +39,9 @@ stages:
         steps:
           - script: echo "Deploying application..."
             displayName: 'Deploy'
+
+          - script: python3 health_check.py
+            displayName: 'Post-Deploy Health Check'
 
           - script: echo "Deployment complete!"
             displayName: 'Deploy done'
