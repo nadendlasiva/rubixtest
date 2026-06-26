@@ -1,0 +1,68 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureServiceConnection: 'Rubixtest'
+  webAppName: 'rubixtestapp-fsgge8hkfpb4gmcg'
+  pythonVersion: '3.11'
+
+stages:
+- stage: Build
+  displayName: Build Python App
+  jobs:
+  - job: BuildJob
+    displayName: Build Job
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Set Python $(pythonVersion)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      displayName: 'Install dependencies'
+
+    - script: |
+        python health_check.py
+      displayName: 'Run Health Check'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+      displayName: 'Zip app files'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
+        ArtifactName: 'drop'
+      displayName: 'Publish artifact'
+
+- stage: Deploy
+  displayName: Deploy to Azure Web App
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    displayName: Deploy Job
+    steps:
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'
+      displayName: 'Download artifact'
+
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        appType: 'webAppLinux'
+        appName: '$(webAppName)'
+        package: '$(System.ArtifactsDirectory)/drop/app.zip'
+        runtimeStack: 'PYTHON|3.11'
+        startUpCommand: 'python health_check.py'
+      displayName: 'Deploy to Azure Web App'

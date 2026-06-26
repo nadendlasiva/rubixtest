@@ -1,68 +1,45 @@
-trigger:
-- main
+trigger: none
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureServiceConnection: 'Rubixtest'
-  webAppName: 'rubixtestapp-fsgge8hkfpb4gmcg'
-  pythonVersion: '3.11'
+  subscriptionId: '<YOUR-SUBSCRIPTION-ID>'
 
 stages:
-- stage: Build
-  displayName: Build Python App
+- stage: HealthCheck
   jobs:
-  - job: BuildJob
-    displayName: Build Job
+  - job: AzureHealth
     steps:
-    - task: UsePythonVersion@0
+
+    - task: AzureCLI@2
+      displayName: 'Run Azure Health Check'
       inputs:
-        versionSpec: '$(pythonVersion)'
-      displayName: 'Set Python $(pythonVersion)'
+        azureSubscription: '<YOUR-SERVICE-CONNECTION>'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "===== Azure Health Check Started ====="
 
-    - script: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      displayName: 'Install dependencies'
+          echo ""
+          echo "🔹 Checking Resource Groups..."
+          az group list --query "[].name" -o table
 
-    - script: |
-        python health_check.py
-      displayName: 'Run Health Check'
+          echo ""
+          echo "🔹 Checking Virtual Machines Status..."
+          az vm list -d --query "[].{Name:name, Status:powerState}" -o table
 
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
-      displayName: 'Zip app files'
+          echo ""
+          echo "🔹 Checking App Services..."
+          az webapp list --query "[].{Name:name, State:state}" -o table
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
-        ArtifactName: 'drop'
-      displayName: 'Publish artifact'
+          echo ""
+          echo "🔹 Checking Storage Accounts..."
+          az storage account list --query "[].{Name:name, Status:statusOfPrimary}" -o table
 
-- stage: Deploy
-  displayName: Deploy to Azure Web App
-  dependsOn: Build
-  jobs:
-  - job: DeployJob
-    displayName: Deploy Job
-    steps:
-    - task: DownloadBuildArtifacts@1
-      inputs:
-        artifactName: 'drop'
-        downloadPath: '$(System.ArtifactsDirectory)'
-      displayName: 'Download artifact'
+          echo ""
+          echo "🔹 Checking Failed Resources (basic check)..."
+          az resource list --query "[?provisioningState!='Succeeded'].{Name:name, State:provisioningState}" -o table
 
-    - task: AzureWebApp@1
-      inputs:
-        azureSubscription: '$(azureServiceConnection)'
-        appType: 'webAppLinux'
-        appName: '$(webAppName)'
-        package: '$(System.ArtifactsDirectory)/drop/app.zip'
-        runtimeStack: 'PYTHON|3.11'
-        startUpCommand: 'python health_check.py'
-      displayName: 'Deploy to Azure Web App'
+          echo ""
+          echo "===== Azure Health Check Completed ====="
