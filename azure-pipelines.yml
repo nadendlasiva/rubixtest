@@ -1,47 +1,68 @@
 trigger:
-  - main
+- main
 
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  azureServiceConnection: 'Rubixtest'
+  webAppName: 'rubixtestapp-fsgge8hkfpb4gmcg'
+  pythonVersion: '3.11'
+
 stages:
-  - stage: Build
-    jobs:
-      - job: BuildJob
-        steps:
-          - script: echo "Build step running..."
-            displayName: 'Build'
+- stage: Build
+  displayName: Build Python App
+  jobs:
+  - job: BuildJob
+    displayName: Build Job
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Set Python $(pythonVersion)'
 
-          - script: python3 --version
-            displayName: 'Verify Python'
+    - script: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      displayName: 'Install dependencies'
 
-          - script: echo "Build complete!"
-            displayName: 'Build done'
+    - script: |
+        python health_check.py
+      displayName: 'Run Health Check'
 
-  - stage: Test
-    dependsOn: Build
-    jobs:
-      - job: TestJob
-        steps:
-          - script: echo "Running tests..."
-            displayName: 'Test'
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+      displayName: 'Zip app files'
 
-          - script: python3 health_check.py
-            displayName: 'Run Health Check'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
+        ArtifactName: 'drop'
+      displayName: 'Publish artifact'
 
-          - script: echo "All tests passed!"
-            displayName: 'Test done'
+- stage: Deploy
+  displayName: Deploy to Azure Web App
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    displayName: Deploy Job
+    steps:
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'
+      displayName: 'Download artifact'
 
-  - stage: Deploy
-    dependsOn: Test
-    jobs:
-      - job: DeployJob
-        steps:
-          - script: echo "Deploying application..."
-            displayName: 'Deploy'
-
-          - script: python3 health_check.py
-            displayName: 'Post-Deploy Health Check'
-
-          - script: echo "Deployment complete!"
-            displayName: 'Deploy done'
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        appType: 'webAppLinux'
+        appName: '$(webAppName)'
+        package: '$(System.ArtifactsDirectory)/drop/app.zip'
+        runtimeStack: 'PYTHON|3.11'
+        startUpCommand: 'python health_check.py'
+      displayName: 'Deploy to Azure Web App'
