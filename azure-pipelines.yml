@@ -42,4 +42,4 @@ stages:
           az resource list --query "[?provisioningState!='Succeeded'].{Name:name, State:provisioningState}" -o table
 
           echo ""
-          echo "===== Azure Health Check Completed ====="
+          echo "===== Azure Health Check Completed... ====="
