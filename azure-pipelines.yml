@@ -3,43 +3,33 @@ trigger: none
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  subscriptionId: '<YOUR-SUBSCRIPTION-ID>'
-
 stages:
 - stage: HealthCheck
   jobs:
   - job: AzureHealth
     steps:
 
-    - task: AzureCLI@2
-      displayName: 'Run Azure Health Check'
-      inputs:
-        azureSubscription: '<YOUR-SERVICE-CONNECTION>'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          echo "===== Azure Health Check Started ====="
+    - script: |
+        echo "===== Azure Health Check Started ====="
 
-          echo ""
-          echo "🔹 Checking Resource Groups..."
-          az group list --query "[].name" -o table
+        echo ""
+        echo "🔹 Checking Pipeline Agent..."
+        echo "Agent is running on: $(uname -a)"
 
-          echo ""
-          echo "🔹 Checking Virtual Machines Status..."
-          az vm list -d --query "[].{Name:name, Status:powerState}" -o table
+        echo ""
+        echo "🔹 Checking Date and Time..."
+        date
 
-          echo ""
-          echo "🔹 Checking App Services..."
-          az webapp list --query "[].{Name:name, State:state}" -o table
+        echo ""
+        echo "🔹 Checking Pipeline Variables..."
+        echo "Build ID: $(Build.BuildId)"
+        echo "Build Number: $(Build.BuildNumber)"
+        echo "Branch: $(Build.SourceBranchName)"
+        echo "Repo: $(Build.Repository.Name)"
 
-          echo ""
-          echo "🔹 Checking Storage Accounts..."
-          az storage account list --query "[].{Name:name, Status:statusOfPrimary}" -o table
+        echo ""
+        echo "🔹 Pipeline is Working Successfully!"
 
-          echo ""
-          echo "🔹 Checking Failed Resources (basic check)..."
-          az resource list --query "[?provisioningState!='Succeeded'].{Name:name, State:provisioningState}" -o table
-
-          echo ""
-          echo "===== Azure Health Check Completed====="
+        echo ""
+        echo "===== Azure Health Check Completed ====="
+      displayName: 'Run Pipeline Test'
