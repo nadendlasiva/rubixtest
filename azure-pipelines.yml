@@ -7,32 +7,49 @@ pool:
   vmImage: 'ubuntu-latest'
 
 stages:
-- stage: HealthCheck
+
+- stage: Build
   jobs:
-  - job: AzureHealth
+  - job: BuildJob
     steps:
-
     - script: |
-        echo "===== Azure Health Check Started ====="
-
-        echo ""
-        echo "🔹 Checking Pipeline Agent..."
-        echo "Agent is running on: $(uname -a)"
-
-        echo ""
-        echo "🔹 Checking Date and Time..."
-        date
-
-        echo ""
-        echo "🔹 Checking Pipeline Variables..."
+        echo "===== BUILD STAGE ====="
+        echo "Building the application..."
         echo "Build ID: $(Build.BuildId)"
-        echo "Build Number: $(Build.BuildNumber)"
         echo "Branch: $(Build.SourceBranchName)"
         echo "Repo: $(Build.Repository.Name)"
+        echo "✅ Build Completed Successfully!"
+      displayName: 'Build'
 
-        echo ""
-        echo "🔹 Pipeline is Working Successfully!"
+- stage: Test
+  dependsOn: Build
+  jobs:
+  - job: TestJob
+    steps:
+    - script: |
+        echo "===== TEST STAGE ====="
+        echo "Running tests..."
+        echo "✅ All Tests Passed Successfully!"
+      displayName: 'Test'
 
-        echo ""
-        echo "===== Azure Health Check Completed ====="
-      displayName: 'Run Pipeline Test'
+- stage: Publish_Artifact
+  dependsOn: Test
+  jobs:
+  - job: PublishJob
+    steps:
+    - script: |
+        echo "===== PUBLISH ARTIFACT STAGE ====="
+        echo "Publishing artifacts..."
+        echo "✅ Artifacts Published Successfully!"
+      displayName: 'Publish Artifact'
+
+- stage: Deploy_to_Staging
+  dependsOn: Publish_Artifact
+  jobs:
+  - job: DeployJob
+    steps:
+    - script: |
+        echo "===== DEPLOY TO STAGING STAGE ====="
+        echo "Deploying to Staging..."
+        echo "✅ Deployed to Staging Successfully!"
+      displayName: 'Deploy to Staging'
