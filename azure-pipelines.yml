@@ -8,48 +8,145 @@ pool:
 
 stages:
 
+# ============================================================
+# STAGE 1 - BUILD
+# ============================================================
 - stage: Build
+  displayName: 'Stage 1 - Build'
   jobs:
   - job: BuildJob
+    displayName: 'Build Application'
     steps:
     - script: |
-        echo "===== BUILD STAGE ====="
+        echo "=============================================="
+        echo "              BUILD STAGE                    "
+        echo "=============================================="
+        echo ""
+        echo "----------------------------------------------"
+        echo " BUILD INFORMATION"
+        echo "----------------------------------------------"
+        echo "Build ID      : $(Build.BuildId)"
+        echo "Build Number  : $(Build.BuildNumber)"
+        echo "Branch        : $(Build.SourceBranchName)"
+        echo "Repository    : $(Build.Repository.Name)"
+        echo "Triggered By  : $(Build.RequestedFor)"
+        echo "Date/Time     : $(date)"
+        echo ""
+        echo "----------------------------------------------"
+        echo " RUNNING BUILD"
+        echo "----------------------------------------------"
         echo "Building the application..."
-        echo "Build ID: $(Build.BuildId)"
-        echo "Branch: $(Build.SourceBranchName)"
-        echo "Repo: $(Build.Repository.Name)"
-        echo "✅ Build Completed Successfully!"
-      displayName: 'Build'
+        sleep 2
+        echo ""
+        echo "=============================================="
+        echo "        BUILD COMPLETED SUCCESSFULLY         "
+        echo "=============================================="
+      displayName: 'Build Application'
 
+# ============================================================
+# STAGE 2 - TEST
+# ============================================================
 - stage: Test
+  displayName: 'Stage 2 - Test'
   dependsOn: Build
   jobs:
   - job: TestJob
+    displayName: 'Run Tests'
     steps:
     - script: |
-        echo "===== TEST STAGE ====="
-        echo "Running tests..."
-        echo "✅ All Tests Passed Successfully!"
-      displayName: 'Test'
+        echo "=============================================="
+        echo "               TEST STAGE                    "
+        echo "=============================================="
+        echo ""
+        echo "----------------------------------------------"
+        echo " RUNNING TESTS"
+        echo "----------------------------------------------"
+        echo "Running Unit Tests......  PASSED"
+        sleep 1
+        echo "Running Integration Tests.. PASSED"
+        sleep 1
+        echo "Running Smoke Tests.......  PASSED"
+        sleep 1
+        echo ""
+        echo "----------------------------------------------"
+        echo " TEST SUMMARY"
+        echo "----------------------------------------------"
+        echo "Total Tests  : 3"
+        echo "Passed       : 3"
+        echo "Failed       : 0"
+        echo ""
+        echo "=============================================="
+        echo "        ALL TESTS PASSED SUCCESSFULLY        "
+        echo "=============================================="
+      displayName: 'Run Tests'
 
+# ============================================================
+# STAGE 3 - PUBLISH ARTIFACT
+# ============================================================
 - stage: Publish_Artifact
+  displayName: 'Stage 3 - Publish Artifact'
   dependsOn: Test
   jobs:
   - job: PublishJob
+    displayName: 'Publish Artifacts'
     steps:
     - script: |
-        echo "===== PUBLISH ARTIFACT STAGE ====="
-        echo "Publishing artifacts..."
-        echo "✅ Artifacts Published Successfully!"
-      displayName: 'Publish Artifact'
+        echo "=============================================="
+        echo "           PUBLISH ARTIFACT STAGE            "
+        echo "=============================================="
+        echo ""
+        echo "----------------------------------------------"
+        echo " PUBLISHING ARTIFACTS"
+        echo "----------------------------------------------"
+        echo "Packaging application..."
+        sleep 1
+        echo "Uploading artifacts..."
+        sleep 1
+        echo "Artifact Name    : $(Build.Repository.Name)-$(Build.BuildId)"
+        echo "Artifact Version : $(Build.BuildNumber)"
+        echo "Published By     : $(Build.RequestedFor)"
+        echo "Published At     : $(date)"
+        echo ""
+        echo "=============================================="
+        echo "      ARTIFACTS PUBLISHED SUCCESSFULLY       "
+        echo "=============================================="
+      displayName: 'Publish Artifacts'
 
+# ============================================================
+# STAGE 4 - DEPLOY TO STAGING
+# ============================================================
 - stage: Deploy_to_Staging
+  displayName: 'Stage 4 - Deploy to Staging'
   dependsOn: Publish_Artifact
   jobs:
   - job: DeployJob
+    displayName: 'Deploy to Staging'
     steps:
     - script: |
-        echo "===== DEPLOY TO STAGING STAGE ====="
-        echo "Deploying to Staging..."
-        echo "✅ Deployed to Staging Successfully!"
+        echo "=============================================="
+        echo "          DEPLOY TO STAGING STAGE            "
+        echo "=============================================="
+        echo ""
+        echo "----------------------------------------------"
+        echo " DEPLOYMENT DETAILS"
+        echo "----------------------------------------------"
+        echo "Environment    : Staging"
+        echo "Build ID       : $(Build.BuildId)"
+        echo "Branch         : $(Build.SourceBranchName)"
+        echo "Deployed By    : $(Build.RequestedFor)"
+        echo "Deploy Time    : $(date)"
+        echo ""
+        echo "----------------------------------------------"
+        echo " DEPLOYING"
+        echo "----------------------------------------------"
+        echo "Connecting to Staging environment..."
+        sleep 1
+        echo "Deploying application..."
+        sleep 2
+        echo "Running post-deployment checks..."
+        sleep 1
+        echo ""
+        echo "=============================================="
+        echo "     DEPLOYED TO STAGING SUCCESSFULLY        "
+        echo "=============================================="
       displayName: 'Deploy to Staging'
